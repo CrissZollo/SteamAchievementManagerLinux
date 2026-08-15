@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.crisszollo.SteamAchievementManager</id>
+  <launchable type="desktop-id">io.github.crisszollo.SteamAchievementManager.desktop</launchable>
+
+  <name>Steam Achievement Manager</name>
+  <summary>Manage Steam achievements and statistics</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Zlib</project_license>
+
+  <developer id="io.github.crisszollo">
+    <name>CrissZollo</name>
+  </developer>
+
+  <description>
+    <p>
+      A native Linux build of Steam Achievement Manager. It talks to a
+      natively installed Steam client directly, so it does not need Wine.
+    </p>
+    <p>
+      Browse the games in your library that have achievements, then lock or
+      unlock them and edit the statistics behind them. Achievements and stats
+      the game marks as protected are shown read-only, because Steam will not
+      accept changes to them.
+    </p>
+    <p>
+      Steam must be installed natively, running, and signed in.
+    </p>
+  </description>
+
+  <categories>
+    <category>Game</category>
+    <category>Utility</category>
+  </categories>
+
+  <url type="homepage">https://github.com/CrissZollo/SteamAchievementManagerLinux</url>
+  <url type="bugtracker">https://github.com/CrissZollo/SteamAchievementManagerLinux/issues</url>
+
+  <provides>
+    <binary>sam</binary>
+  </provides>
+
+  <content_rating type="oars-1.1"/>
+</component>

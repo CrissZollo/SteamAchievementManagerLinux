@@ -4,12 +4,14 @@ APPDIR := $(PREFIX)/share/applications
 
 CARGO ?= cargo
 
+APP_ID := io.github.crisszollo.SteamAchievementManager
+
 VERSION := $(shell grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
 TARGET_TRIPLE ?= x86_64-linux
 DIST_NAME := sam-$(VERSION)-$(TARGET_TRIPLE)
 DIST_DIR := dist/$(DIST_NAME)
 
-.PHONY: all build test check probe install uninstall clean dist dist-portable
+.PHONY: all build test check probe install uninstall clean dist dist-portable appimage
 
 all: build
 
@@ -31,13 +33,13 @@ probe:
 
 install: build
 	install -Dm755 target/release/sam $(DESTDIR)$(BINDIR)/sam
-	install -Dm644 packaging/sam.desktop $(DESTDIR)$(APPDIR)/sam.desktop
+	install -Dm644 packaging/$(APP_ID).desktop $(DESTDIR)$(APPDIR)/$(APP_ID).desktop
 	@echo "Installed to $(BINDIR)/sam"
 	@echo "Ensure $(BINDIR) is on your PATH."
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/sam
-	rm -f $(DESTDIR)$(APPDIR)/sam.desktop
+	rm -f $(DESTDIR)$(APPDIR)/$(APP_ID).desktop
 
 # Package the current release build into a release tarball plus checksum.
 #
@@ -49,7 +51,10 @@ dist: build
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)
 	install -m755 target/release/sam $(DIST_DIR)/sam
-	install -m644 packaging/sam.desktop $(DIST_DIR)/sam.desktop
+	install -m644 packaging/$(APP_ID).desktop $(DIST_DIR)/$(APP_ID).desktop
+	install -m644 packaging/sam.png $(DIST_DIR)/sam.png
+	install -m644 packaging/sam-32.png $(DIST_DIR)/sam-32.png
+	install -m644 packaging/sam-16.png $(DIST_DIR)/sam-16.png
 	install -m755 packaging/install.sh $(DIST_DIR)/install.sh
 	install -m644 README.md $(DIST_DIR)/README.md
 	install -m644 ../LICENSE.txt $(DIST_DIR)/LICENSE.txt
@@ -60,6 +65,12 @@ dist: build
 	@echo "Minimum glibc for this tarball:"
 	@objdump -T target/release/sam | grep -oE 'GLIBC_[0-9]+\.[0-9]+(\.[0-9]+)?' \
 		| sort -uV | tail -1 | sed 's/^/  /'
+
+# Single-file bundle. Note this does NOT widen distro support: AppImage does
+# not bundle glibc, so the floor is still whatever this build was compiled
+# against. It exists for the convenience of one downloadable file.
+appimage: build
+	./packaging/make-appimage.sh
 
 # Build the tarball inside an old-glibc container so it runs on mainstream
 # distributions rather than only on this machine. Mirrors what CI does.

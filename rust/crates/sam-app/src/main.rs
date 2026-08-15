@@ -27,6 +27,14 @@ use sam_steam::{GameSchema, Steam, UserStats};
 
 const WINDOW_TITLE: &str = "Steam Achievement Manager";
 
+/// Reverse-DNS application identifier.
+///
+/// Shared by the window's app id, the `.desktop` file's basename and
+/// `StartupWMClass`, and the AppStream component id. Desktop environments
+/// match on these to pair a window with its launcher entry and icon, and
+/// AppStream requires the metainfo filename to match the component id.
+const APP_ID: &str = "io.github.crisszollo.SteamAchievementManager";
+
 #[derive(Debug, PartialEq, Eq)]
 enum Mode {
     Picker,
@@ -203,7 +211,10 @@ fn launch(
         viewport: egui::ViewportBuilder::default()
             .with_inner_size(size)
             .with_min_inner_size([560.0, 400.0])
-            .with_app_id("steam-achievement-manager"),
+            // Must match the desktop file's basename and its StartupWMClass,
+            // so the window is associated with the launcher entry and picks
+            // up its icon under both Wayland and X11.
+            .with_app_id(APP_ID),
         ..Default::default()
     };
 

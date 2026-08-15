@@ -19,6 +19,25 @@ const OWNERSHIP_CHECKS_PER_FRAME: usize = 200;
 const CELL_WIDTH: f32 = 208.0;
 const CAPSULE_HEIGHT: f32 = 78.0;
 
+/// What to exec when opening a game in its own process.
+///
+/// Normally this is just our own path. Inside an AppImage it must not be:
+/// `current_exe()` there points into the runtime's FUSE mount
+/// (`/tmp/.mount_XXXX/usr/bin/sam`), which is torn down when the launching
+/// process exits. A child still running from that mount would lose its
+/// backing file. The runtime exports `APPIMAGE` as the path of the
+/// `.AppImage` itself, so launching that instead gives the child its own
+/// mount and an independent lifetime.
+fn relaunch_target() -> std::io::Result<std::path::PathBuf> {
+    if let Some(appimage) = std::env::var_os("APPIMAGE") {
+        let path = std::path::PathBuf::from(appimage);
+        if path.is_file() {
+            return Ok(path);
+        }
+    }
+    std::env::current_exe()
+}
+
 pub struct PickerApp {
     session: Session,
     games: Vec<GameEntry>,
@@ -222,7 +241,7 @@ impl PickerApp {
     /// child's own startup, so it is present from the moment it execs and
     /// cannot be missed.
     fn open_editor(&mut self, app_id: u32) {
-        let exe = match std::env::current_exe() {
+        let exe = match relaunch_target() {
             Ok(exe) => exe,
             Err(e) => {
                 self.error = Some(format!("Could not locate this executable: {e}"));

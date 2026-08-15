@@ -4,9 +4,11 @@ Name=Steam Achievement Manager
 GenericName=Achievement Manager
 Comment=Manage Steam achievements and statistics
 Exec=sam
-Icon=applications-games
+Icon=sam
 Terminal=false
 Categories=Game;Utility;
 Keywords=steam;achievement;stats;
 StartupNotify=true
-StartupWMClass=steam-achievement-manager
+# Must match the app id set via ViewportBuilder::with_app_id, and the basename
+# of this file, so compositors associate the window with this launcher entry.
+StartupWMClass=io.github.crisszollo.SteamAchievementManager

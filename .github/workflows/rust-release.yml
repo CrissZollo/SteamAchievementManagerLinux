@@ -33,7 +33,7 @@ jobs:
         run: |
           apt-get update -qq
           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-            curl ca-certificates build-essential git
+            curl ca-certificates build-essential git appstream
 
       - uses: actions/checkout@v4
 
@@ -57,6 +57,16 @@ jobs:
       - name: Build release tarball
         working-directory: rust
         run: make dist
+
+      # Built from the same container binary, so the AppImage inherits the
+      # same glibc floor. AppImage bundles no libraries here — sam links only
+      # libc, libm and libgcc_s — so this is purely about handing users a
+      # single file rather than about portability.
+      - name: Build AppImage
+        working-directory: rust
+        run: |
+          apt-get install -y -qq file zsync
+          make appimage
 
       - name: Verify portability
         working-directory: rust
@@ -82,6 +92,8 @@ jobs:
           files: |
             rust/dist/*.tar.gz
             rust/dist/*.tar.gz.sha256
+            rust/dist/*.AppImage
+            rust/dist/*.AppImage.sha256
           generate_release_notes: true
           body: |
             Native Linux build of Steam Achievement Manager.
@@ -89,6 +101,15 @@ jobs:
             Requires a native Steam installation, running and signed in.
             Built against glibc 2.35, so it runs on Ubuntu 22.04+,
             Debian 12+, Fedora 36+, RHEL 9+ and the rolling distributions.
+
+            **AppImage** — one file, nothing to install:
+
+            ```sh
+            chmod +x sam-*-x86_64.AppImage
+            ./sam-*-x86_64.AppImage
+            ```
+
+            **Tarball** — if you would rather have it on your PATH:
 
             ```sh
             tar xzf sam-*-x86_64-linux.tar.gz
@@ -107,4 +128,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sam-linux-x86_64
-          path: rust/dist/*.tar.gz
+          path: |
+            rust/dist/*.tar.gz
+            rust/dist/*.AppImage

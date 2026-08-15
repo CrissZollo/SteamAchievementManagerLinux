@@ -23,12 +23,26 @@ dependencies, and the result is a single self-contained binary.
 Flatpak Steam is detected, but the sandbox may prevent a host-installed `sam`
 from reaching the client. A native Steam install is the supported setup.
 
-## Build and install
+## Install
+
+From a [release](../../releases), either:
+
+```sh
+# AppImage: one file, nothing to install
+chmod +x sam-*-x86_64.AppImage
+./sam-*-x86_64.AppImage
+
+# or the tarball, if you want it on your PATH
+tar xzf sam-*-x86_64-linux.tar.gz && cd sam-*-x86_64-linux
+./install.sh          # ~/.local/bin, no root needed
+```
+
+## Build from source
 
 ```sh
 cd rust
 make            # cargo build --release
-make install    # to ~/.local/bin plus a .desktop entry
+make install    # to ~/.local/bin plus a .desktop entry and icons
 ```
 
 Or straight from cargo:
@@ -78,19 +92,44 @@ Ubuntu 22.04+, Debian 12+, Fedora 36+, RHEL 9+ and the rolling distributions.
 Building on the bare runner, or on a rolling-release desktop, pins a far newer
 glibc and locks most users out.
 
-To build a release tarball locally:
+To build the artifacts locally:
 
 ```sh
-make dist            # packages target/release/sam as-is
-make dist-portable   # same, but inside the ubuntu:22.04 container
+make dist            # tarball from target/release/sam as-is
+make appimage        # single-file AppImage from the same binary
+make dist-portable   # tarball, but inside the ubuntu:22.04 container
 ```
 
-`make dist` prints the minimum glibc of what it just built. If that number is
-higher than 2.35, the tarball is not fit to publish — use `make dist-portable`,
-which needs a running Docker daemon, or let CI do it.
+Both print the minimum glibc of what they just built. If that number is higher
+than 2.35, the artifact is not fit to publish — use `make dist-portable`, which
+needs a running Docker daemon, or let CI do it.
 
-The artifact is `rust/dist/sam-<version>-x86_64-linux.tar.gz`, containing the
-binary, `install.sh`, a `.desktop` entry, this README and the licence.
+### On AppImage
+
+The AppImage is offered because one downloadable file is convenient, **not**
+because it improves portability. AppImage does not bundle glibc — its own
+documentation tells you to build on the oldest distribution you want to
+support, which is exactly what the release container does. Nor does it bundle
+any libraries here, because there are none to bundle: `sam` links only `libc`,
+`libm` and `libgcc_s`. X11, Wayland and GL are `dlopen`ed and deliberately left
+to the host, since shipping our own `libGL` is a reliable way to break
+someone's drivers.
+
+Two details that matter:
+
+- It is built with the **static AppImage runtime**, so it does not require
+  `libfuse2`, which Ubuntu 22.04 and later no longer install by default.
+- The picker launches each game in its own process. Inside an AppImage it
+  execs `$APPIMAGE` rather than `/proc/self/exe`, because the latter points
+  into the runtime's FUSE mount, which is torn down when the launching process
+  exits and would pull the filesystem out from under a running child.
+
+### Artifacts
+
+| File | Contents |
+|------|----------|
+| `sam-<version>-x86_64.AppImage` | Single-file bundle, plus `.sha256` |
+| `sam-<version>-x86_64-linux.tar.gz` | Binary, `install.sh`, `.desktop`, icons, README, licence, plus `.sha256` |
 
 ## Verifying your setup
 
