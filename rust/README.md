@@ -56,6 +56,42 @@ process, so the picker spawns `sam --app <id>` rather than switching views in
 place. The Windows original has the same constraint, which is why it ships a
 separate `SAM.Game.exe`.
 
+## Releasing
+
+Push a tag and GitHub Actions builds and publishes everything:
+
+```sh
+# bump `version` in rust/Cargo.toml first, then:
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+`.github/workflows/rust-release.yml` builds the tarball, attaches it to a
+GitHub release along with a SHA-256 file, and fails early if the tag does not
+match the version in `rust/Cargo.toml`.
+
+The release job builds inside an `ubuntu:22.04` container **on purpose**. The
+binary links only `libc`, `libm` and `libgcc_s` — X11, Wayland and GL are
+`dlopen`ed at run time — so the glibc it is compiled against is the single
+thing deciding who can run it. Ubuntu 22.04 ships glibc 2.35, which covers
+Ubuntu 22.04+, Debian 12+, Fedora 36+, RHEL 9+ and the rolling distributions.
+Building on the bare runner, or on a rolling-release desktop, pins a far newer
+glibc and locks most users out.
+
+To build a release tarball locally:
+
+```sh
+make dist            # packages target/release/sam as-is
+make dist-portable   # same, but inside the ubuntu:22.04 container
+```
+
+`make dist` prints the minimum glibc of what it just built. If that number is
+higher than 2.35, the tarball is not fit to publish — use `make dist-portable`,
+which needs a running Docker daemon, or let CI do it.
+
+The artifact is `rust/dist/sam-<version>-x86_64-linux.tar.gz`, containing the
+binary, `install.sh`, a `.desktop` entry, this README and the licence.
+
 ## Verifying your setup
 
 Steam updates can move things around. Before trusting a write, you can check

@@ -1,0 +1,110 @@
+name: Rust Release
+
+# Push a tag to publish a release:
+#
+#     git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
+#
+# The tag must match the workspace version in rust/Cargo.toml; the job fails
+# early if it does not, rather than shipping a mislabelled tarball.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    # Built inside an old-glibc image on purpose. The binary links only libc,
+    # libm and libgcc_s (X11, Wayland and GL are dlopened at run time), so the
+    # glibc it is compiled against is the single thing determining which
+    # distributions can run it. Ubuntu 22.04 ships glibc 2.35, which covers
+    # Ubuntu 22.04+, Debian 12+, Fedora 36+, RHEL 9+ and the rolling distros.
+    # Building on the bare runner would pin a much newer glibc and lock most
+    # users out.
+    container: ubuntu:22.04
+
+    steps:
+      - name: Install build prerequisites
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+            curl ca-certificates build-essential git
+
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Check the tag matches the crate version
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: rust
+        run: |
+          crate_version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          tag_version="${GITHUB_REF_NAME#v}"
+          echo "crate: $crate_version, tag: $tag_version"
+          if [ "$crate_version" != "$tag_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $crate_version in rust/Cargo.toml"
+            exit 1
+          fi
+
+      - name: Build release tarball
+        working-directory: rust
+        run: make dist
+
+      - name: Verify portability
+        working-directory: rust
+        run: |
+          floor=$(objdump -T target/release/sam \
+            | grep -oE 'GLIBC_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -uV | tail -1)
+          echo "Minimum glibc: $floor"
+          echo "Dynamic dependencies:"
+          ldd target/release/sam
+          # Starting up at all proves the binary links and runs on this glibc.
+          ./target/release/sam --version
+          {
+            echo "### Release artifact"
+            echo
+            echo "- Minimum glibc: \`$floor\`"
+            echo "- Links: \`$(ldd target/release/sam | grep -oE 'lib[a-z_]+\.so\.[0-9]+' | sort -u | tr '\n' ' ')\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            rust/dist/*.tar.gz
+            rust/dist/*.tar.gz.sha256
+          generate_release_notes: true
+          body: |
+            Native Linux build of Steam Achievement Manager.
+
+            Requires a native Steam installation, running and signed in.
+            Built against glibc 2.35, so it runs on Ubuntu 22.04+,
+            Debian 12+, Fedora 36+, RHEL 9+ and the rolling distributions.
+
+            ```sh
+            tar xzf sam-*-x86_64-linux.tar.gz
+            cd sam-*-x86_64-linux
+            ./install.sh     # installs to ~/.local/bin, no root needed
+            sam
+            ```
+
+            After a Steam update you can re-verify the client ABI with
+            `make probe` from a source checkout. It is read-only.
+
+      # Without a tag (manual runs) keep the artifact for inspection rather
+      # than publishing anything.
+      - name: Upload artifact
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: sam-linux-x86_64
+          path: rust/dist/*.tar.gz

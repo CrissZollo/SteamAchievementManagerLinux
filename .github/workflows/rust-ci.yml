@@ -1,0 +1,49 @@
+name: Rust CI
+
+# Only the Rust port. The original C# tree is built by AppVeyor on Windows.
+on:
+  push:
+    paths:
+      - 'rust/**'
+      - '.github/workflows/rust-ci.yml'
+  pull_request:
+    paths:
+      - 'rust/**'
+      - '.github/workflows/rust-ci.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: rust
+
+jobs:
+  check:
+    name: Format, lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Lints
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # None of these need Steam. The tests that would touch a real
+      # installation report and skip when none is present.
+      - name: Tests
+        run: cargo test --workspace
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Smoke test
+        run: ./target/release/sam --version
