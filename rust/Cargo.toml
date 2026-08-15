@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/sam-vdf",
+    "crates/sam-steam",
+    "crates/sam-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "Zlib"
+repository = "https://github.com/CrissZollo/SteamAchievementManagerLinux"
+
+[workspace.dependencies]
+sam-vdf = { path = "crates/sam-vdf" }
+sam-steam = { path = "crates/sam-steam" }
+
+[profile.release]
+opt-level = 2
+lto = "thin"
+strip = true

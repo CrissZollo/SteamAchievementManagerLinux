@@ -1,0 +1,12 @@
+[package]
+name = "sam-steam"
+description = "Native Linux bindings to Steam's private steamclient.so interfaces"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sam-vdf.workspace = true
+libloading = "0.8"

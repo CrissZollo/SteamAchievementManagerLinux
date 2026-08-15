@@ -1,0 +1,33 @@
+[package]
+name = "sam-app"
+description = "Steam Achievement Manager for Linux"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "sam"
+path = "src/main.rs"
+
+[dependencies]
+sam-steam.workspace = true
+sam-vdf.workspace = true
+
+# Pure-Rust GUI. `glow` is the OpenGL renderer; both display server backends
+# are enabled so one binary works on X11 and Wayland alike.
+eframe = { version = "0.32", default-features = false, features = [
+    "default_fonts",
+    "glow",
+    "wayland",
+    "x11",
+] }
+egui = "0.32"
+
+# Steam serves capsules as JPEG and achievement icons as JPEG or PNG. No other
+# decoders are needed, and excluding them keeps the binary small.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+
+# Blocking HTTP for icons and the fallback game list, used on worker threads.
+ureq = "3"

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Steam Achievement Manager
+GenericName=Achievement Manager
+Comment=Manage Steam achievements and statistics
+Exec=sam
+Icon=applications-games
+Terminal=false
+Categories=Game;Utility;
+Keywords=steam;achievement;stats;
+StartupNotify=true
+StartupWMClass=steam-achievement-manager
